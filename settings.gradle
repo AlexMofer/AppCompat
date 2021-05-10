@@ -1,0 +1,3 @@
+rootProject.name = "AppCompat"
+include ':app'
+include ':appcompat'
