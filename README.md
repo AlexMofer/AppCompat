@@ -13,7 +13,7 @@ AppCompat
 ```
 dependencies {
     ...
-    implementation 'io.github.alexmofer.appcompat:appcompat:1.2.0'
+    implementation 'io.github.alexmofer.appcompat:appcompat:1.3.0'
     ...
 }
 ```
