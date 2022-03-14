@@ -9,8 +9,8 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 32
-        versionCode 9
-        versionName "1.4.0"
+        versionCode 10
+        versionName "1.4.1"
     }
 
     compileOptions {
@@ -20,8 +20,8 @@ android {
 }
 
 dependencies {
-    compileOnly 'androidx.appcompat:appcompat:1.4.0'
-    api 'io.github.alexmofer.mvp:mvp-android:1.4.0'
+    compileOnly 'androidx.appcompat:appcompat:1.4.1'
+    api 'io.github.alexmofer.mvp:mvp-android:1.4.1'
 }
 
 //apply from: "maven-central-aar.gradle"
