@@ -15,15 +15,10 @@
  */
 package com.am.appcompat.app;
 
-import android.os.Bundle;
-import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 
 import androidx.annotation.ContentView;
 import androidx.annotation.LayoutRes;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 import com.am.mvp.app.MVPDialogFragment;
 
@@ -33,23 +28,12 @@ import com.am.mvp.app.MVPDialogFragment;
  */
 public class AppCompatDialogFragment extends MVPDialogFragment {
 
-    @LayoutRes
-    private int mContentLayoutId;
-
     public AppCompatDialogFragment() {
     }
 
     @ContentView
     public AppCompatDialogFragment(@LayoutRes int contentLayoutId) {
-        this();
-        mContentLayoutId = contentLayoutId;
-    }
-
-    @Nullable
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
-                             @Nullable Bundle savedInstanceState) {
-        return mContentLayoutId != 0 ?
-                inflater.inflate(mContentLayoutId, container, false) : null;
+        super(contentLayoutId);
     }
 
     /**
@@ -60,9 +44,6 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
      * @return 对应资源ID的View
      */
     public final <V extends View> V findViewById(int id) {
-        final View view = getView();
-        if (view == null)
-            return requireDialog().findViewById(id);
-        return view.findViewById(id);
+        return requireDialog().findViewById(id);
     }
 }

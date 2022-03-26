@@ -43,12 +43,6 @@ public abstract class Fragment extends MVPFragment {
      * @return 对应资源ID的View
      */
     public final <V extends View> V findViewById(int id) {
-        final View view = getView();
-        if (view == null) {
-            // 在错误的时机调用
-            throw new IllegalStateException("Fragment " + this
-                    + " has not created its view yet.");
-        }
-        return view.findViewById(id);
+        return requireView().findViewById(id);
     }
 }
