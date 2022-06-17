@@ -15,6 +15,7 @@
  */
 package com.am.appcompat.app;
 
+import android.annotation.SuppressLint;
 import android.os.Build;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,9 +25,11 @@ import androidx.annotation.ContentView;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.view.menu.MenuBuilder;
 
 import com.am.mvp.app.MVPActivity;
+
+import java.util.ArrayList;
 
 /**
  * 基础Activity
@@ -34,7 +37,9 @@ import com.am.mvp.app.MVPActivity;
  */
 public abstract class AppCompatActivity extends MVPActivity {
 
-    private Object mToolbar;
+    private final ArrayList<ToolbarDelegate> mToolbarDelegates = new ArrayList<>();
+    private final ArrayList<BackPressedDelegate> mBackPressedDelegates = new ArrayList<>();
+    private View mToolbar;
 
     public AppCompatActivity() {
     }
@@ -82,7 +87,7 @@ public abstract class AppCompatActivity extends MVPActivity {
      */
     public final void setSupportActionBar(@IdRes int toolbarId, boolean showTitle) {
         setSupportActionBar(toolbarId);
-        final ActionBar actionBar = getSupportActionBar();
+        final androidx.appcompat.app.ActionBar actionBar = getSupportActionBar();
         if (actionBar != null) {
             actionBar.setDisplayShowTitleEnabled(showTitle);
         }
@@ -97,14 +102,7 @@ public abstract class AppCompatActivity extends MVPActivity {
     @SuppressWarnings("unchecked")
     @Nullable
     public <T extends View> T getToolbar() {
-        if (mToolbar instanceof androidx.appcompat.widget.Toolbar) {
-            return (T) mToolbar;
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (mToolbar instanceof android.widget.Toolbar) {
-                return (T) mToolbar;
-            }
-        }
-        return null;
+        return (T) mToolbar;
     }
 
     /**
@@ -147,7 +145,23 @@ public abstract class AppCompatActivity extends MVPActivity {
      * @param v 返回按钮
      */
     protected void onToolbarNavigationClick(View v) {
+        for (ToolbarDelegate delegate : mToolbarDelegates) {
+            if (delegate.onToolbarNavigationClick(v)) {
+                return;
+            }
+        }
         onBackPressed();
+    }
+
+    /**
+     * 更新Toolbar菜单
+     *
+     * @param menu 菜单
+     */
+    protected void onToolbarMenuUpdate(@NonNull Menu menu) {
+        for (ToolbarDelegate delegate : mToolbarDelegates) {
+            delegate.onToolbarMenuUpdate(menu);
+        }
     }
 
     /**
@@ -157,15 +171,12 @@ public abstract class AppCompatActivity extends MVPActivity {
      * @return 是否消耗掉这次点击事件
      */
     protected boolean onToolbarMenuItemClick(@NonNull MenuItem item) {
+        for (ToolbarDelegate delegate : mToolbarDelegates) {
+            if (delegate.onToolbarMenuItemClick(item)) {
+                return true;
+            }
+        }
         return false;
-    }
-
-    /**
-     * 更新Toolbar菜单
-     *
-     * @param menu 菜单
-     */
-    protected void onToolbarMenuUpdate(@NonNull Menu menu) {
     }
 
     /**
@@ -182,6 +193,121 @@ public abstract class AppCompatActivity extends MVPActivity {
                         (android.widget.Toolbar) mToolbar;
                 onToolbarMenuUpdate(toolbar.getMenu());
             }
+        }
+    }
+
+    /**
+     * 隐藏溢出菜单
+     *
+     * @return 完成隐藏时返回true
+     */
+    @SuppressLint("RestrictedApi")
+    protected boolean hideOverflowMenu() {
+        if (mToolbar instanceof androidx.appcompat.widget.Toolbar) {
+            return ((androidx.appcompat.widget.Toolbar) mToolbar).hideOverflowMenu();
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (mToolbar instanceof android.widget.Toolbar) {
+                return ((android.widget.Toolbar) mToolbar).hideOverflowMenu();
+            }
+        }
+        final androidx.appcompat.app.ActionBar sab = getSupportActionBar();
+        if (sab != null) {
+            return sab.collapseActionView();
+        }
+        final android.app.ActionBar ab = getActionBar();
+        if (ab != null) {
+            try {
+                //noinspection ConstantConditions
+                return (boolean) ab.getClass().getMethod("collapseActionView").invoke(ab);
+            } catch (Exception e) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (hideOverflowMenu()) {
+            return;
+        }
+        for (BackPressedDelegate delegate : mBackPressedDelegates) {
+            if (delegate.onBackPressed()) {
+                return;
+            }
+        }
+        super.onBackPressed();
+    }
+
+    /**
+     * 添加Toolbar代理
+     *
+     * @param delegate Toolbar代理
+     */
+    public void addToolbarDelegate(@NonNull ToolbarDelegate delegate) {
+        mToolbarDelegates.add(delegate);
+    }
+
+    /**
+     * 移除Toolbar代理
+     *
+     * @param delegate Toolbar代理
+     */
+    public void removeToolbarDelegate(@NonNull ToolbarDelegate delegate) {
+        mToolbarDelegates.remove(delegate);
+    }
+
+    /**
+     * 清空Toolbar代理
+     */
+    public void clearToolbarDelegate() {
+        mToolbarDelegates.clear();
+    }
+
+    /**
+     * 添加返回事件代理
+     *
+     * @param delegate 返回事件代理
+     */
+    public void addBackPressedDelegate(@NonNull BackPressedDelegate delegate) {
+        mBackPressedDelegates.add(delegate);
+    }
+
+    /**
+     * 移除返回事件代理
+     *
+     * @param delegate 返回事件代理
+     */
+    public void removeBackPressedDelegate(@NonNull BackPressedDelegate delegate) {
+        mBackPressedDelegates.remove(delegate);
+    }
+
+    /**
+     * 清空返回事件代理
+     */
+    public void clearBackPressedDelegates() {
+        mBackPressedDelegates.clear();
+    }
+
+    /**
+     * 是否显示可选图标
+     *
+     * @param menu    菜单
+     * @param visible 是否显示
+     */
+    @SuppressLint("RestrictedApi")
+    public boolean setOptionalIconsVisible(Menu menu, boolean visible) {
+        if (menu instanceof MenuBuilder) {
+            ((MenuBuilder) menu).setOptionalIconsVisible(visible);
+            return true;
+        }
+        try {
+            menu.getClass().getMethod("setOptionalIconsVisible", Boolean.TYPE)
+                    .invoke(menu, visible);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 }

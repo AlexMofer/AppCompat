@@ -17,7 +17,7 @@ android {
 }
 
 dependencies {
-    compileOnly 'androidx.appcompat:appcompat:1.4.1'
+    compileOnly 'androidx.appcompat:appcompat:1.4.2'
     api 'io.github.alexmofer.mvp:mvp-android:1.4.1.1'
 }
 
