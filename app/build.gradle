@@ -3,12 +3,13 @@ plugins {
 }
 
 android {
-    compileSdk 32
+    namespace 'com.am.appcompat.ui'
+    compileSdk 33
 
     defaultConfig {
         applicationId "com.am.appcompat"
         minSdk 21
-        targetSdk 32
+        targetSdk 33
         versionCode 1
         versionName "1.0"
 
@@ -25,11 +26,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
-    namespace 'com.am.appcompat.ui'
 }
 
 dependencies {
-    implementation 'androidx.appcompat:appcompat:1.4.2'
+    implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation project(':appcompat')

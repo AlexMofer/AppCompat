@@ -3,8 +3,8 @@ plugins {
 }
 
 android {
-    compileSdk 33
     namespace 'com.am.appcompat'
+    compileSdk 33
 
     defaultConfig {
         minSdk 14
@@ -19,7 +19,7 @@ android {
 
 dependencies {
     compileOnly 'androidx.appcompat:appcompat:1.5.1'
-    api 'io.github.alexmofer.mvp:mvp-android:1.4.1.1'
+    api 'io.github.alexmofer.mvp:mvp-android:1.5.1'
 }
 
 //apply from: "maven-central-aar.gradle"
