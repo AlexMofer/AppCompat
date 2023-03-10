@@ -19,9 +19,11 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.os.Bundle;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringRes;
 
 import java.lang.ref.WeakReference;
 
@@ -86,6 +88,44 @@ public final class ApplicationHolder implements Application.ActivityLifecycleCal
     @Nullable
     public static Activity getResumedActivity() {
         return mInstance.mResumedActivity == null ? null : mInstance.mResumedActivity.get();
+    }
+
+    /**
+     * 发送Toast
+     *
+     * @param text     文本
+     * @param duration 时长
+     */
+    public static void toast(CharSequence text, int duration) {
+        Toast.makeText(ApplicationHolder.getApplicationContext(), text, duration).show();
+    }
+
+    /**
+     * 发送Toast
+     *
+     * @param text 文本
+     */
+    public static void toast(CharSequence text) {
+        toast(text, Toast.LENGTH_SHORT);
+    }
+
+    /**
+     * 发送Toast
+     *
+     * @param resId    文本资源
+     * @param duration 时长
+     */
+    public static void toast(@StringRes int resId, int duration) {
+        Toast.makeText(ApplicationHolder.getApplicationContext(), resId, duration).show();
+    }
+
+    /**
+     * 发送Toast
+     *
+     * @param resId 文本资源
+     */
+    public static void toast(@StringRes int resId) {
+        toast(resId, Toast.LENGTH_SHORT);
     }
 
     private void destroy() {
