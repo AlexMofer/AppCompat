@@ -24,6 +24,7 @@ import androidx.appcompat.app.AppCompatDialog;
  * 材料设计对话框
  * Created by Alex on 2022/4/26.
  */
+@Deprecated
 public class MaterialDialog extends AppCompatDialog {
 
     public MaterialDialog(@NonNull Context context) {

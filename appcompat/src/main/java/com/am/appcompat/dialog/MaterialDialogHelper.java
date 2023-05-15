@@ -42,6 +42,7 @@ import com.google.android.material.theme.overlay.MaterialThemeOverlay;
  * 材料设计对话框辅助
  * Created by Alex on 2022/4/26.
  */
+@Deprecated
 @SuppressLint({"RestrictedApi", "PrivateResource"})
 class MaterialDialogHelper {
 

@@ -19,7 +19,7 @@ android {
 
 dependencies {
     compileOnly 'androidx.appcompat:appcompat:1.6.1'
-    compileOnly 'com.google.android.material:material:1.8.0'
+    compileOnly 'com.google.android.material:material:1.9.0'
     api 'io.github.alexmofer.mvp:mvp-android:1.6.1'
 }
 

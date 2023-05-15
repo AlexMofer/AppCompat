@@ -36,6 +36,7 @@ import androidx.fragment.app.DialogFragment;
  *
  * @see DialogFragment
  */
+@Deprecated
 @SuppressLint("RestrictedApi")
 public class MaterialAlertDialogFragment extends DialogFragment {
 

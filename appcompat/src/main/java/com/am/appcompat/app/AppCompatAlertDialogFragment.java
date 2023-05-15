@@ -37,6 +37,7 @@ import androidx.fragment.app.FragmentManager;
  * 基础警报对话框
  * Created by Alex on 2020/6/12.
  */
+@Deprecated
 public class AppCompatAlertDialogFragment extends AppCompatDialogFragment {
 
     private static final String KEY_TITLE = "title";

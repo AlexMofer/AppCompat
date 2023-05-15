@@ -25,6 +25,7 @@ import androidx.appcompat.app.AlertDialog;
  * 材料设计的AlertDialog
  * Created by Alex on 2022/4/26.
  */
+@Deprecated
 public class MaterialAlertDialog extends AlertDialog {
 
     public MaterialAlertDialog(@NonNull Context context) {
