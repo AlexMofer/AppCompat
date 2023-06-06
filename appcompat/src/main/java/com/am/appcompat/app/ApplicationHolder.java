@@ -26,20 +26,26 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 
 /**
  * Application 持有者
  * Created by Alex on 2020/3/7.
  */
-public final class ApplicationHolder implements Application.ActivityLifecycleCallbacks {
+public final class ApplicationHolder {
 
     private static ApplicationHolder mInstance;
+    private final Application.ActivityLifecycleCallbacks mCallback =
+            new InnerActivityLifecycleCallbacks();
+    private final ArrayList<ApplicationStateCallback> mCallbacks = new ArrayList<>();
     private final Application mApplication;
     private WeakReference<Activity> mResumedActivity;
+    private int mActivityCount = 0;
+    private WeakReference<Activity> mStartedActivity;
 
     private ApplicationHolder(Application application) {
         mApplication = application;
-        application.registerActivityLifecycleCallbacks(this);
+        application.registerActivityLifecycleCallbacks(mCallback);
     }
 
     /**
@@ -128,43 +134,133 @@ public final class ApplicationHolder implements Application.ActivityLifecycleCal
         toast(resId, Toast.LENGTH_SHORT);
     }
 
+    /**
+     * 注册应用状态回调
+     *
+     * @param callback 应用状态回调
+     */
+    public static void registerApplicationStateCallback(ApplicationStateCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        mInstance.mCallbacks.add(callback);
+    }
+
+    /**
+     * 取消注册应用状态回调
+     *
+     * @param callback 应用状态回调
+     */
+    public static void unregisterApplicationStateCallback(ApplicationStateCallback callback) {
+        if (callback == null) {
+            return;
+        }
+        mInstance.mCallbacks.remove(callback);
+    }
+
+    /**
+     * 判断应用是否处于前台
+     *
+     * @return 处于前台时返回true
+     */
+    public static boolean isForeground() {
+        return mInstance.mActivityCount > 0;
+    }
+
+    /**
+     * 获取已开始运行的 Activity
+     *
+     * @return Activity
+     */
+    @Nullable
+    public static Activity getStartedActivity() {
+        return mInstance.mStartedActivity == null ? null : mInstance.mStartedActivity.get();
+    }
+
     private void destroy() {
-        mApplication.unregisterActivityLifecycleCallbacks(this);
+        mApplication.unregisterActivityLifecycleCallbacks(mCallback);
+        mCallbacks.clear();
+        mResumedActivity = null;
+        mStartedActivity = null;
     }
 
-    @Override
-    public void onActivityCreated(@NonNull Activity activity,
-                                  @Nullable Bundle savedInstanceState) {
+    /**
+     * 应用状态回调
+     */
+    public interface ApplicationStateCallback {
+
+        /**
+         * 应用进入前台
+         *
+         * @param application Application
+         * @param activity    Activity
+         */
+        void onForeground(@NonNull Application application, @NonNull Activity activity);
+
+        /**
+         * 应用进入后台
+         *
+         * @param application Application
+         */
+        void onBackground(@NonNull Application application);
     }
 
-    @Override
-    public void onActivityStarted(@NonNull Activity activity) {
-    }
+    private class InnerActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
 
-    @Override
-    public void onActivityResumed(@NonNull Activity activity) {
-        mResumedActivity = new WeakReference<>(activity);
-    }
+        @Override
+        public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
 
-    @Override
-    public void onActivityPaused(@NonNull Activity activity) {
-        if (mResumedActivity != null) {
-            if (activity == mResumedActivity.get())
-                mResumedActivity = null;
+        }
+
+        @Override
+        public void onActivityStarted(@NonNull Activity activity) {
+            mStartedActivity = new WeakReference<>(activity);
+            if (mActivityCount == 0) {
+                for (ApplicationStateCallback callback : mCallbacks) {
+                    callback.onForeground(mApplication, activity);
+                }
+            }
+            mActivityCount++;
+        }
+
+        @Override
+        public void onActivityResumed(@NonNull Activity activity) {
+            mResumedActivity = new WeakReference<>(activity);
+        }
+
+        @Override
+        public void onActivityPaused(@NonNull Activity activity) {
+            if (mResumedActivity != null) {
+                if (activity == mResumedActivity.get()) {
+                    mResumedActivity = null;
+                }
+            }
+        }
+
+        @Override
+        public void onActivityStopped(@NonNull Activity activity) {
+            if (mStartedActivity != null) {
+                if (activity == mStartedActivity.get()) {
+                    mStartedActivity = null;
+                }
+            }
+            mActivityCount--;
+            if (mActivityCount == 0) {
+                for (ApplicationStateCallback callback : mCallbacks) {
+                    callback.onBackground(mApplication);
+                }
+            }
+        }
+
+        @Override
+        public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
+
+        }
+
+        @Override
+        public void onActivityDestroyed(@NonNull Activity activity) {
+
         }
     }
 
-    @Override
-    public void onActivityStopped(@NonNull Activity activity) {
-    }
-
-    @Override
-    public void onActivitySaveInstanceState(@NonNull Activity activity,
-                                            @NonNull Bundle outState) {
-    }
-
-    @Override
-    public void onActivityDestroyed(@NonNull Activity activity) {
-
-    }
 }
