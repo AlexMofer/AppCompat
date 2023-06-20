@@ -18,6 +18,7 @@ package com.am.appcompat.app;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Toast;
 
@@ -27,6 +28,7 @@ import androidx.annotation.StringRes;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * Application 持有者
@@ -35,17 +37,17 @@ import java.util.ArrayList;
 public final class ApplicationHolder {
 
     private static ApplicationHolder mInstance;
-    private final Application.ActivityLifecycleCallbacks mCallback =
-            new InnerActivityLifecycleCallbacks();
     private final ArrayList<ApplicationStateCallback> mCallbacks = new ArrayList<>();
+    private final ArrayList<Intent> mAutoStartActivities = new ArrayList<>();
     private final Application mApplication;
-    private WeakReference<Activity> mResumedActivity;
-    private int mActivityCount = 0;
+    private int mActivityStartedCount = 0;
+    private boolean mIgnoreForegroundOnce = false;
     private WeakReference<Activity> mStartedActivity;
+    private WeakReference<Activity> mResumedActivity;
 
     private ApplicationHolder(Application application) {
         mApplication = application;
-        application.registerActivityLifecycleCallbacks(mCallback);
+        application.registerActivityLifecycleCallbacks(new InnerActivityLifecycleCallbacks());
     }
 
     /**
@@ -55,16 +57,6 @@ public final class ApplicationHolder {
      */
     public static void create(Application application) {
         mInstance = new ApplicationHolder(application);
-    }
-
-    /**
-     * 销毁
-     *
-     * @param application Application
-     */
-    public static void destroy(Application application) {
-        mInstance.destroy();
-        mInstance = null;
     }
 
     /**
@@ -84,16 +76,6 @@ public final class ApplicationHolder {
      */
     public static Context getApplicationContext() {
         return getApplication().getApplicationContext();
-    }
-
-    /**
-     * 获取正在运行的 Activity
-     *
-     * @return Activity
-     */
-    @Nullable
-    public static Activity getResumedActivity() {
-        return mInstance.mResumedActivity == null ? null : mInstance.mResumedActivity.get();
     }
 
     /**
@@ -164,7 +146,7 @@ public final class ApplicationHolder {
      * @return 处于前台时返回true
      */
     public static boolean isForeground() {
-        return mInstance.mActivityCount > 0;
+        return mInstance.mActivityStartedCount > 0;
     }
 
     /**
@@ -177,11 +159,49 @@ public final class ApplicationHolder {
         return mInstance.mStartedActivity == null ? null : mInstance.mStartedActivity.get();
     }
 
-    private void destroy() {
-        mApplication.unregisterActivityLifecycleCallbacks(mCallback);
-        mCallbacks.clear();
-        mResumedActivity = null;
-        mStartedActivity = null;
+    /**
+     * 获取正在运行的 Activity
+     *
+     * @return Activity
+     */
+    @Nullable
+    public static Activity getResumedActivity() {
+        return mInstance.mResumedActivity == null ? null : mInstance.mResumedActivity.get();
+    }
+
+    /**
+     * 添加自启动Activity
+     *
+     * @param intent 意图
+     */
+    public static void addAutoStartActivity(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        final Activity activity = getResumedActivity();
+        if (activity != null && !(activity instanceof NoAllowedStartActivity)) {
+            activity.startActivity(intent);
+            return;
+        }
+        mInstance.add(intent);
+    }
+
+    private void add(Intent intent) {
+        if (intent == null) {
+            return;
+        }
+        synchronized (mAutoStartActivities) {
+            final int count = mAutoStartActivities.size();
+            for (int i = 0; i < count; i++) {
+                final Intent activity = mAutoStartActivities.get(i);
+                if (Objects.equals(activity.getComponent(), intent.getComponent())) {
+                    mAutoStartActivities.add(i, intent);
+                    mAutoStartActivities.remove(i + 1);
+                    return;
+                }
+            }
+            mAutoStartActivities.add(intent);
+        }
     }
 
     /**
@@ -205,27 +225,49 @@ public final class ApplicationHolder {
         void onBackground(@NonNull Application application);
     }
 
+    /**
+     * 不允许用于启动Activity
+     */
+    public interface NoAllowedStartActivity {
+    }
+
     private class InnerActivityLifecycleCallbacks implements Application.ActivityLifecycleCallbacks {
 
         @Override
-        public void onActivityCreated(@NonNull Activity activity, @Nullable Bundle savedInstanceState) {
-
+        public void onActivityCreated(@NonNull Activity activity,
+                                      @Nullable Bundle savedInstanceState) {
         }
 
         @Override
         public void onActivityStarted(@NonNull Activity activity) {
             mStartedActivity = new WeakReference<>(activity);
-            if (mActivityCount == 0) {
-                for (ApplicationStateCallback callback : mCallbacks) {
-                    callback.onForeground(mApplication, activity);
+            if (mActivityStartedCount == 0) {
+                if (mIgnoreForegroundOnce) {
+                    mIgnoreForegroundOnce = false;
+                } else {
+                    for (ApplicationStateCallback callback : mCallbacks) {
+                        callback.onForeground(mApplication, activity);
+                    }
                 }
             }
-            mActivityCount++;
+            mActivityStartedCount++;
         }
 
         @Override
         public void onActivityResumed(@NonNull Activity activity) {
             mResumedActivity = new WeakReference<>(activity);
+            if (activity instanceof NoAllowedStartActivity) {
+                return;
+            }
+            final ArrayList<Intent> intents;
+            synchronized (mAutoStartActivities) {
+                intents = new ArrayList<>(mAutoStartActivities);
+                mAutoStartActivities.clear();
+
+            }
+            for (Intent intent : intents) {
+                activity.startActivity(intent);
+            }
         }
 
         @Override
@@ -244,22 +286,25 @@ public final class ApplicationHolder {
                     mStartedActivity = null;
                 }
             }
-            mActivityCount--;
-            if (mActivityCount == 0) {
-                for (ApplicationStateCallback callback : mCallbacks) {
-                    callback.onBackground(mApplication);
+            mActivityStartedCount--;
+            if (mActivityStartedCount == 0) {
+                if (activity.isChangingConfigurations()) {
+                    mIgnoreForegroundOnce = true;
+                } else {
+                    for (ApplicationStateCallback callback : mCallbacks) {
+                        callback.onBackground(mApplication);
+                    }
                 }
             }
         }
 
         @Override
-        public void onActivitySaveInstanceState(@NonNull Activity activity, @NonNull Bundle outState) {
-
+        public void onActivitySaveInstanceState(@NonNull Activity activity,
+                                                @NonNull Bundle outState) {
         }
 
         @Override
         public void onActivityDestroyed(@NonNull Activity activity) {
-
         }
     }
 
