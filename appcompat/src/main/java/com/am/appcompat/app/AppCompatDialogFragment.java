@@ -16,16 +16,13 @@
 package com.am.appcompat.app;
 
 import android.app.Dialog;
-import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
 
 import androidx.annotation.ContentView;
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDialog;
 
 import com.am.mvp.app.MVPDialogFragment;
 
@@ -46,7 +43,13 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        return new InnerDialog(requireContext(), getTheme());
+        return new AppCompatDialog(requireContext(), false, getTheme()) {
+            @Override
+            protected void onSetContentView() {
+                super.onSetContentView();
+                AppCompatDialogFragment.this.onSetContentView(this);
+            }
+        };
     }
 
     /**
@@ -55,7 +58,6 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
      * @param dialog Dialog
      */
     protected void onSetContentView(Dialog dialog) {
-
     }
 
     /**
@@ -67,30 +69,5 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
      */
     public final <V extends View> V findViewById(int id) {
         return requireDialog().findViewById(id);
-    }
-
-    private class InnerDialog extends AppCompatDialog {
-
-        public InnerDialog(Context context, int theme) {
-            super(context, theme);
-        }
-
-        @Override
-        public void setContentView(@NonNull View view) {
-            super.setContentView(view);
-            onSetContentView(this);
-        }
-
-        @Override
-        public void setContentView(int layoutResID) {
-            super.setContentView(layoutResID);
-            onSetContentView(this);
-        }
-
-        @Override
-        public void setContentView(@NonNull View view, ViewGroup.LayoutParams params) {
-            super.setContentView(view, params);
-            onSetContentView(this);
-        }
     }
 }

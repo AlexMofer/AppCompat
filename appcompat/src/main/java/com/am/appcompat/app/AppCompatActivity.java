@@ -16,10 +16,12 @@
 package com.am.appcompat.app;
 
 import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.os.Build;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 
 import androidx.annotation.ContentView;
 import androidx.annotation.IdRes;
@@ -35,10 +37,10 @@ import java.util.ArrayList;
  * 基础Activity
  * Created by Alex on 2020/6/1.
  */
-public abstract class AppCompatActivity extends MVPActivity {
+public abstract class AppCompatActivity extends MVPActivity implements DialogHolder {
 
     private final ArrayList<ToolbarDelegate> mToolbarDelegates = new ArrayList<>();
-    private final ArrayList<BackPressedDelegate> mBackPressedDelegates = new ArrayList<>();
+    private final ArrayList<AppCompatDialog> mDialogs = new ArrayList<>();
     private View mToolbar;
 
     public AppCompatActivity() {
@@ -47,6 +49,28 @@ public abstract class AppCompatActivity extends MVPActivity {
     @ContentView
     public AppCompatActivity(int contentLayoutId) {
         super(contentLayoutId);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        final ArrayList<AppCompatDialog> dialogs = new ArrayList<>(mDialogs);
+        for (AppCompatDialog dialog : dialogs) {
+            try {
+                if (dialog.isShowing()) {
+                    dialog.onDismissByActivityStop();
+                    final Window window = dialog.getWindow();
+                    try {
+                        dialog.getWindow().getWindowManager()
+                                .removeViewImmediate(window.getDecorView());
+                    } finally {
+                        window.closeAllPanels();
+                    }
+                }
+            } catch (Exception e) {
+                // ignore
+            }
+        }
     }
 
     @Override
@@ -150,7 +174,10 @@ public abstract class AppCompatActivity extends MVPActivity {
                 return;
             }
         }
-        onBackPressed();
+        if (hideOverflowMenu()) {
+            return;
+        }
+        getOnBackPressedDispatcher().onBackPressed();
     }
 
     /**
@@ -227,19 +254,6 @@ public abstract class AppCompatActivity extends MVPActivity {
         return false;
     }
 
-    @Override
-    public void onBackPressed() {
-        if (hideOverflowMenu()) {
-            return;
-        }
-        for (BackPressedDelegate delegate : mBackPressedDelegates) {
-            if (delegate.onBackPressed()) {
-                return;
-            }
-        }
-        super.onBackPressed();
-    }
-
     /**
      * 添加Toolbar代理
      *
@@ -266,31 +280,6 @@ public abstract class AppCompatActivity extends MVPActivity {
     }
 
     /**
-     * 添加返回事件代理
-     *
-     * @param delegate 返回事件代理
-     */
-    public void addBackPressedDelegate(@NonNull BackPressedDelegate delegate) {
-        mBackPressedDelegates.add(delegate);
-    }
-
-    /**
-     * 移除返回事件代理
-     *
-     * @param delegate 返回事件代理
-     */
-    public void removeBackPressedDelegate(@NonNull BackPressedDelegate delegate) {
-        mBackPressedDelegates.remove(delegate);
-    }
-
-    /**
-     * 清空返回事件代理
-     */
-    public void clearBackPressedDelegates() {
-        mBackPressedDelegates.clear();
-    }
-
-    /**
      * 是否显示可选图标
      *
      * @param menu    菜单
@@ -309,5 +298,21 @@ public abstract class AppCompatActivity extends MVPActivity {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    @Override
+    public void addDialog(AppCompatDialog dialog) {
+        if (dialog == null) {
+            return;
+        }
+        mDialogs.add(dialog);
+    }
+
+    @Override
+    public void removeDialog(AppCompatDialog dialog) {
+        if (dialog == null) {
+            return;
+        }
+        mDialogs.remove(dialog);
     }
 }

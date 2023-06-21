@@ -35,7 +35,6 @@ import com.am.mvp.app.MVPFragment;
 public abstract class Fragment extends MVPFragment {
 
     private final ToolbarDelegate mToolbarDelegate = new InnerToolbarDelegate();
-    private final BackPressedDelegate mBackPressedDelegate = new InnerBackPressedDelegate();
     private boolean mHasToolbarMenu;
     private boolean mDelegateBackPressed;
 
@@ -67,9 +66,6 @@ public abstract class Fragment extends MVPFragment {
                 ((AppCompatActivity) activity).addToolbarDelegate(mToolbarDelegate);
                 ((AppCompatActivity) activity).invalidateToolbarMenu();
             }
-            if (mDelegateBackPressed) {
-                ((AppCompatActivity) activity).addBackPressedDelegate(mBackPressedDelegate);
-            }
         }
     }
 
@@ -81,9 +77,6 @@ public abstract class Fragment extends MVPFragment {
             if (mHasToolbarMenu) {
                 ((AppCompatActivity) activity).removeToolbarDelegate(mToolbarDelegate);
                 ((AppCompatActivity) activity).invalidateToolbarMenu();
-            }
-            if (mDelegateBackPressed) {
-                ((AppCompatActivity) activity).removeBackPressedDelegate(mBackPressedDelegate);
             }
         }
     }
@@ -107,28 +100,6 @@ public abstract class Fragment extends MVPFragment {
                     ((AppCompatActivity) activity).removeToolbarDelegate(mToolbarDelegate);
                 }
                 invalidateToolbarMenu();
-            }
-        }
-    }
-
-    /**
-     * 设置是否代理返回操作
-     *
-     * @param delegate 是否代理返回操作
-     */
-    public void setDelegateBackPressed(boolean delegate) {
-        if (mDelegateBackPressed == delegate) {
-            return;
-        }
-        mDelegateBackPressed = delegate;
-        if (getView() != null) {
-            final FragmentActivity activity = getActivity();
-            if (activity instanceof AppCompatActivity) {
-                if (mDelegateBackPressed) {
-                    ((AppCompatActivity) activity).addBackPressedDelegate(mBackPressedDelegate);
-                } else {
-                    ((AppCompatActivity) activity).removeBackPressedDelegate(mBackPressedDelegate);
-                }
             }
         }
     }
@@ -173,33 +144,6 @@ public abstract class Fragment extends MVPFragment {
         }
     }
 
-    /**
-     * 返回事件
-     *
-     * @return 消耗这次返回事件时返回true
-     */
-    protected boolean onBackPressed() {
-        return false;
-    }
-
-    /**
-     * 获取Toolbar代理
-     *
-     * @return Toolbar代理
-     */
-    protected ToolbarDelegate getToolbarDelegate() {
-        return mToolbarDelegate;
-    }
-
-    /**
-     * 获取返回事件代理
-     *
-     * @return 返回事件代理
-     */
-    protected BackPressedDelegate getBackPressedDelegate() {
-        return mBackPressedDelegate;
-    }
-
     private class InnerToolbarDelegate implements ToolbarDelegate {
 
         @Override
@@ -215,14 +159,6 @@ public abstract class Fragment extends MVPFragment {
         @Override
         public void onToolbarMenuUpdate(@NonNull Menu menu) {
             Fragment.this.onToolbarMenuUpdate(menu, requireActivity().getMenuInflater());
-        }
-    }
-
-    private class InnerBackPressedDelegate implements BackPressedDelegate {
-
-        @Override
-        public boolean onBackPressed() {
-            return Fragment.this.onBackPressed();
         }
     }
 }
