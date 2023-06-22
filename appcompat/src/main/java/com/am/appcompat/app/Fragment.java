@@ -36,7 +36,6 @@ public abstract class Fragment extends MVPFragment {
 
     private final ToolbarDelegate mToolbarDelegate = new InnerToolbarDelegate();
     private boolean mHasToolbarMenu;
-    private boolean mDelegateBackPressed;
 
     public Fragment() {
     }
