@@ -16,6 +16,7 @@
 package com.am.appcompat.app;
 
 import android.app.Dialog;
+import android.content.Context;
 import android.os.Bundle;
 import android.view.View;
 
@@ -43,13 +44,7 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
-        return new AppCompatDialog(requireContext(), false, getTheme()) {
-            @Override
-            protected void onSetContentView() {
-                super.onSetContentView();
-                AppCompatDialogFragment.this.onSetContentView(this);
-            }
-        };
+        return new InnerDialog(requireContext());
     }
 
     /**
@@ -61,6 +56,17 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
     }
 
     /**
+     * 对话框关闭（重写可进行关闭拦截）
+     *
+     * @param dialog 对话框
+     */
+    public void onDialogDismiss(Dialog dialog) {
+        if (dialog instanceof InnerDialog) {
+            ((InnerDialog) dialog).superDismiss();
+        }
+    }
+
+    /**
      * 通过ID查找View
      *
      * @param id  View 的资源ID
@@ -69,5 +75,27 @@ public class AppCompatDialogFragment extends MVPDialogFragment {
      */
     public final <V extends View> V findViewById(int id) {
         return requireDialog().findViewById(id);
+    }
+
+    private class InnerDialog extends AppCompatDialog {
+
+        public InnerDialog(@NonNull Context context) {
+            super(context, false, getTheme());
+        }
+
+        @Override
+        protected void onSetContentView() {
+            super.onSetContentView();
+            AppCompatDialogFragment.this.onSetContentView(this);
+        }
+
+        @Override
+        public void dismiss() {
+            onDialogDismiss(this);
+        }
+
+        public void superDismiss() {
+            super.dismiss();
+        }
     }
 }
