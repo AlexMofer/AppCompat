@@ -29,6 +29,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.view.menu.MenuBuilder;
 
+import com.am.appcompat.view.MenuUtils;
 import com.am.mvp.app.MVPActivity;
 
 import java.util.ArrayList;
@@ -259,6 +260,7 @@ public abstract class AppCompatActivity extends MVPActivity implements DialogHol
      *
      * @param delegate Toolbar代理
      */
+    @Deprecated
     public void addToolbarDelegate(@NonNull ToolbarDelegate delegate) {
         mToolbarDelegates.add(delegate);
     }
@@ -268,6 +270,7 @@ public abstract class AppCompatActivity extends MVPActivity implements DialogHol
      *
      * @param delegate Toolbar代理
      */
+    @Deprecated
     public void removeToolbarDelegate(@NonNull ToolbarDelegate delegate) {
         mToolbarDelegates.remove(delegate);
     }
@@ -275,6 +278,7 @@ public abstract class AppCompatActivity extends MVPActivity implements DialogHol
     /**
      * 清空Toolbar代理
      */
+    @Deprecated
     public void clearToolbarDelegate() {
         mToolbarDelegates.clear();
     }
@@ -285,19 +289,9 @@ public abstract class AppCompatActivity extends MVPActivity implements DialogHol
      * @param menu    菜单
      * @param visible 是否显示
      */
-    @SuppressLint("RestrictedApi")
+    @Deprecated
     public boolean setOptionalIconsVisible(Menu menu, boolean visible) {
-        if (menu instanceof MenuBuilder) {
-            ((MenuBuilder) menu).setOptionalIconsVisible(visible);
-            return true;
-        }
-        try {
-            menu.getClass().getMethod("setOptionalIconsVisible", Boolean.TYPE)
-                    .invoke(menu, visible);
-            return true;
-        } catch (Exception e) {
-            return false;
-        }
+        return MenuUtils.setOptionalIconsVisible(menu, visible);
     }
 
     @Override

@@ -15,16 +15,15 @@
  */
 package com.am.appcompat.app;
 
-import android.os.Bundle;
+import android.annotation.SuppressLint;
+import android.os.Build;
 import android.view.Menu;
-import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 
-import androidx.annotation.ContentView;
+import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.FragmentActivity;
 
 import com.am.mvp.app.MVPFragment;
 
@@ -34,93 +33,72 @@ import com.am.mvp.app.MVPFragment;
  */
 public abstract class Fragment extends MVPFragment {
 
-    private final ToolbarDelegate mToolbarDelegate = new InnerToolbarDelegate();
-    private boolean mHasToolbarMenu;
+    private View mToolbar;
 
-    public Fragment() {
-    }
-
-    @ContentView
-    public Fragment(int contentLayoutId) {
-        super(contentLayoutId);
+    /**
+     * 获取Toolbar
+     *
+     * @param <T> androidx.appcompat.widget.Toolbar 或 android.widget.Toolbar
+     * @return Toolbar
+     */
+    @SuppressWarnings("unchecked")
+    @Nullable
+    public <T extends View> T getToolbar() {
+        return (T) mToolbar;
     }
 
     /**
-     * 通过ID查找View
+     * 设置 Toolbar
      *
-     * @param id  View 的资源ID
-     * @param <V> View类型
-     * @return 对应资源ID的View
+     * @param toolbar Toolbar
      */
-    public final <V extends View> V findViewById(int id) {
-        return requireView().findViewById(id);
-    }
-
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        final FragmentActivity activity = getActivity();
-        if (activity instanceof AppCompatActivity) {
-            if (mHasToolbarMenu) {
-                ((AppCompatActivity) activity).addToolbarDelegate(mToolbarDelegate);
-                ((AppCompatActivity) activity).invalidateToolbarMenu();
-            }
-        }
-    }
-
-    @Override
-    public void onDestroyView() {
-        super.onDestroyView();
-        final FragmentActivity activity = getActivity();
-        if (activity instanceof AppCompatActivity) {
-            if (mHasToolbarMenu) {
-                ((AppCompatActivity) activity).removeToolbarDelegate(mToolbarDelegate);
-                ((AppCompatActivity) activity).invalidateToolbarMenu();
-            }
-        }
-    }
-
-    /**
-     * 设置是否有Toolbar菜单
-     *
-     * @param hasMenu 是否有Toolbar菜单
-     */
-    public void setHasToolbarMenu(boolean hasMenu) {
-        if (mHasToolbarMenu == hasMenu) {
-            return;
-        }
-        mHasToolbarMenu = hasMenu;
-        if (getView() != null) {
-            final FragmentActivity activity = getActivity();
-            if (activity instanceof AppCompatActivity) {
-                if (mHasToolbarMenu) {
-                    ((AppCompatActivity) activity).addToolbarDelegate(mToolbarDelegate);
-                } else {
-                    ((AppCompatActivity) activity).removeToolbarDelegate(mToolbarDelegate);
-                }
+    public final void setToolbar(View toolbar) {
+        if (toolbar instanceof androidx.appcompat.widget.Toolbar) {
+            final androidx.appcompat.widget.Toolbar tb =
+                    (androidx.appcompat.widget.Toolbar) toolbar;
+            tb.setNavigationOnClickListener(this::onToolbarNavigationClick);
+            tb.setOnMenuItemClickListener(this::onToolbarMenuItemClick);
+            mToolbar = toolbar;
+            invalidateToolbarMenu();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (toolbar instanceof android.widget.Toolbar) {
+                final android.widget.Toolbar tb =
+                        (android.widget.Toolbar) toolbar;
+                tb.setNavigationOnClickListener(this::onToolbarNavigationClick);
+                tb.setOnMenuItemClickListener(this::onToolbarMenuItemClick);
+                mToolbar = toolbar;
                 invalidateToolbarMenu();
             }
         }
     }
 
     /**
+     * 设置 Toolbar
+     *
+     * @param toolbarId Toolbar资源ID
+     */
+    public final void setToolbar(@IdRes int toolbarId) {
+        setToolbar(requireView().findViewById(toolbarId));
+    }
+
+    /**
      * 点击了Toolbar的返回按钮
      *
      * @param v 返回按钮
-     * @return 是否消耗掉这次点击事件
      */
-    protected boolean onToolbarNavigationClick(View v) {
-        requireActivity().onBackPressed();
-        return true;
+    protected void onToolbarNavigationClick(View v) {
+        if (hideOverflowMenu()) {
+            return;
+        }
+        requireActivity().getOnBackPressedDispatcher().onBackPressed();
     }
 
     /**
      * 更新Toolbar菜单
      *
-     * @param menu     菜单
-     * @param inflater MenuInflater
+     * @param menu 菜单
      */
-    protected void onToolbarMenuUpdate(@NonNull Menu menu, MenuInflater inflater) {
+    protected void onToolbarMenuUpdate(@NonNull Menu menu) {
     }
 
     /**
@@ -136,28 +114,35 @@ public abstract class Fragment extends MVPFragment {
     /**
      * 刷新Toolbar菜单
      */
-    protected void invalidateToolbarMenu() {
-        final FragmentActivity activity = getActivity();
-        if (activity instanceof AppCompatActivity) {
-            ((AppCompatActivity) activity).invalidateToolbarMenu();
+    public void invalidateToolbarMenu() {
+        if (mToolbar instanceof androidx.appcompat.widget.Toolbar) {
+            final androidx.appcompat.widget.Toolbar toolbar =
+                    (androidx.appcompat.widget.Toolbar) mToolbar;
+            onToolbarMenuUpdate(toolbar.getMenu());
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (mToolbar instanceof android.widget.Toolbar) {
+                final android.widget.Toolbar toolbar =
+                        (android.widget.Toolbar) mToolbar;
+                onToolbarMenuUpdate(toolbar.getMenu());
+            }
         }
     }
 
-    private class InnerToolbarDelegate implements ToolbarDelegate {
-
-        @Override
-        public boolean onToolbarNavigationClick(View v) {
-            return Fragment.this.onToolbarNavigationClick(v);
+    /**
+     * 隐藏溢出菜单
+     *
+     * @return 完成隐藏时返回true
+     */
+    @SuppressLint("RestrictedApi")
+    protected boolean hideOverflowMenu() {
+        if (mToolbar instanceof androidx.appcompat.widget.Toolbar) {
+            return ((androidx.appcompat.widget.Toolbar) mToolbar).hideOverflowMenu();
         }
-
-        @Override
-        public boolean onToolbarMenuItemClick(@NonNull MenuItem item) {
-            return Fragment.this.onToolbarMenuItemClick(item);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (mToolbar instanceof android.widget.Toolbar) {
+                return ((android.widget.Toolbar) mToolbar).hideOverflowMenu();
+            }
         }
-
-        @Override
-        public void onToolbarMenuUpdate(@NonNull Menu menu) {
-            Fragment.this.onToolbarMenuUpdate(menu, requireActivity().getMenuInflater());
-        }
+        return false;
     }
 }
