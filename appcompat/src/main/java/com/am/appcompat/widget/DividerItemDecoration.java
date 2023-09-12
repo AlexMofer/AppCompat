@@ -33,7 +33,6 @@ import androidx.recyclerview.widget.RecyclerView;
 public class DividerItemDecoration extends RecyclerView.ItemDecoration {
     public static final int UNSPECIFIED = -1;
     public static final int HORIZONTAL = RecyclerView.HORIZONTAL;
-
     public static final int VERTICAL = RecyclerView.VERTICAL;
     private final DividerParams mBeginning;
     private final DividerParams mMiddle;
@@ -366,8 +365,7 @@ public class DividerItemDecoration extends RecyclerView.ItemDecoration {
             }
             if (mScaleType == SCALE_TYPE_FIT) {
                 mDrawable.setBounds(mLeftMargin, mTopMargin,
-                        width - mLeftMargin - mRightMargin,
-                        height - mTopMargin - mBottomMargin);
+                        width - mRightMargin, height - mBottomMargin);
                 mDrawable.draw(canvas);
             } else {
                 final int drawableWidth = mDrawable.getIntrinsicWidth();
