@@ -17,14 +17,17 @@ package com.am.appcompat.app;
 
 import android.app.Activity;
 import android.app.Application;
+import android.content.ComponentCallbacks2;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.collection.ArrayMap;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -39,6 +42,7 @@ public final class ApplicationHolder {
     private static ApplicationHolder mInstance;
     private final ArrayList<ApplicationStateCallback> mCallbacks = new ArrayList<>();
     private final ArrayList<Intent> mAutoStartActivities = new ArrayList<>();
+    private final ArrayMap<String, ApplicationData> mData = new ArrayMap<>();
     private final Application mApplication;
     private int mActivityStartedCount = 0;
     private boolean mIgnoreForegroundOnce = false;
@@ -48,6 +52,7 @@ public final class ApplicationHolder {
     private ApplicationHolder(Application application) {
         mApplication = application;
         application.registerActivityLifecycleCallbacks(new InnerActivityLifecycleCallbacks());
+        application.registerComponentCallbacks(new InnerComponentCallbacks());
     }
 
     /**
@@ -186,6 +191,20 @@ public final class ApplicationHolder {
         mInstance.add(intent);
     }
 
+    @Nullable
+    static <T extends ApplicationData> T getData(String key) {
+        //noinspection unchecked
+        return (T) mInstance.mData.get(key);
+    }
+
+    static void addData(String key, @NonNull ApplicationData value) {
+        mInstance.mData.put(key, value);
+    }
+
+    static void removeData(String key) {
+        mInstance.mData.remove(key);
+    }
+
     private void add(Intent intent) {
         if (intent == null) {
             return;
@@ -308,4 +327,27 @@ public final class ApplicationHolder {
         }
     }
 
+    private class InnerComponentCallbacks implements ComponentCallbacks2 {
+
+        @Override
+        public void onConfigurationChanged(@NonNull Configuration newConfig) {
+            final int count = mData.size();
+            for (int i = 0; i < count; i++) {
+                mData.valueAt(i).onConfigurationChanged(newConfig);
+            }
+        }
+
+        @Override
+        public void onLowMemory() {
+            // ignore
+        }
+
+        @Override
+        public void onTrimMemory(int level) {
+            final int count = mData.size();
+            for (int i = 0; i < count; i++) {
+                mData.valueAt(i).onTrimMemory(level);
+            }
+        }
+    }
 }
